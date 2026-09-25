@@ -274,7 +274,7 @@ with pestana2:
             ruta_final = os.path.join(LOGOS_DIR, archivo_guardado)
 
             with open(ruta_final, "wb") as f:
-                f.write(archivo_logo.get_buffer())
+                f.write(archivo_logo.getbuffer())
 
             if nombre_cliente not in db:
                 db[nombre_cliente] = {"logos": {}}
