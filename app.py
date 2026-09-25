@@ -5,7 +5,7 @@ import streamlit as st
 from PIL import Image
 from fpdf import FPDF
 
-# Configuración de carpetas locales
+# Configuración de carpetas
 DATA_DIR = "datos"
 LOGOS_DIR = os.path.join(DATA_DIR, "logos")
 DB_FILE = os.path.join(DATA_DIR, "clientes_logos.json")
@@ -22,152 +22,235 @@ def guardar_datos(datos):
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(datos, f, ensure_ascii=False, indent=2)
 
-# Clase de diseño del PDF con formato técnico limpio
-class FichaProduccionPDF(FPDF):
-    def dibujar_ficha(self, data):
+class FichaSegundaOpcionPDF(FPDF):
+    def dibujar_tarjeta(self, x, y, w, h, titulo="", r=2):
+        # Fondo blanco con borde suave
+        self.set_fill_color(255, 255, 255)
+        self.set_draw_color(218, 224, 233)
+        self.set_line_width(0.3)
+        self.rect(x, y, w, h, style="DF")
+        
+        # Franja / Título si aplica
+        if titulo:
+            self.set_xy(x + 3, y + 2)
+            self.set_font("Helvetica", "B", 7.5)
+            self.set_text_color(15, 23, 42)
+            self.cell(w - 6, 4, titulo.upper(), ln=1)
+            self.set_draw_color(241, 245, 249)
+            self.line(x + 2, y + 7, x + w - 2, y + 7)
+
+    def generar(self, data):
         self.add_page()
         self.set_auto_page_break(auto=False)
-        self.set_margins(15, 12, 15)
+        self.set_margins(10, 10, 10)
 
-        # 1. ENCABEZADO SUPERIOR
-        # Logo / Marca Nova Seguridad
-        self.set_font("Helvetica", "B", 18)
-        self.set_text_color(30, 41, 59)
-        self.cell(70, 9, "NOVA", ln=1)
-        self.set_font("Helvetica", "B", 10)
-        self.set_text_color(100, 116, 139)
-        self.cell(70, 5, "SEGURIDAD INDUSTRIAL", ln=0)
+        # ----------------------------------------------------
+        # 1. ENCABEZADO SUPERIOR OSCURO (Estilo Opción 2)
+        # ----------------------------------------------------
+        self.set_fill_color(11, 27, 44)  # Azul noche / casi negro
+        self.rect(10, 10, 190, 22, style="F")
+
+        # Texto Logo Nova Seguridad
+        self.set_xy(14, 13)
+        self.set_font("Helvetica", "B", 14)
+        self.set_text_color(255, 255, 255)
+        self.cell(60, 5, "NOVA SEGURIDAD", ln=1)
+        self.set_xy(14, 19)
+        self.set_font("Helvetica", "", 7.5)
+        self.set_text_color(148, 163, 184)
+        self.cell(60, 4, "Soluciones en EPP y Vestuario", ln=0)
+
+        # Línea vertical divisoria en el header
+        self.set_draw_color(51, 65, 85)
+        self.line(82, 13, 82, 29)
 
         # Título Central
-        self.set_xy(80, 14)
-        self.set_font("Helvetica", "B", 15)
-        self.set_text_color(15, 23, 42)
-        self.cell(60, 10, "ORDEN DE PRODUCCIÓN", border=0, align="C")
+        self.set_xy(86, 13)
+        self.set_font("Helvetica", "B", 10.5)
+        self.set_text_color(255, 255, 255)
+        self.cell(55, 5, "ORDEN TÉCNICA", ln=1)
+        self.set_xy(86, 19)
+        self.cell(55, 4, "DE PRODUCCIÓN", ln=0)
 
-        # Recuadro Superior Derecho: Logo Cliente
-        x_box_logo = 145
-        y_box_logo = 12
-        w_box_logo = 50
-        h_box_logo = 26
-
-        self.set_draw_color(180, 180, 180)
-        self.rect(x_box_logo, y_box_logo, w_box_logo, h_box_logo)
-        
-        self.set_xy(x_box_logo, y_box_logo + 1)
-        self.set_font("Helvetica", "B", 7)
-        self.set_text_color(120, 120, 120)
-        self.cell(w_box_logo, 4, "LOGO CLIENTE", align="C", ln=1)
-
-        # Incrustar imagen en el recuadro superior si existe
-        if data.get("logo_path") and os.path.exists(data["logo_path"]):
-            try:
-                self.image(data["logo_path"], x=x_box_logo + 5, y=y_box_logo + 5, w=w_box_logo - 10, h=h_box_logo - 7)
-            except Exception:
-                pass
-
-        # Línea separadora
-        self.set_draw_color(200, 200, 200)
-        self.line(15, 42, 195, 42)
-
-        # 2. DATOS GENERALES (Bloque ordenado)
-        self.set_xy(15, 46)
-        
-        # Fila 1: Cliente y Fecha
-        self.set_font("Helvetica", "B", 9)
-        self.set_text_color(50, 50, 50)
-        self.cell(32, 6, "CLIENTE:", border=0)
-        self.set_font("Helvetica", "", 9)
-        self.cell(75, 6, str(data["cliente"]), border="B")
-        
-        self.cell(8, 6, "") # Espacio
-        self.set_font("Helvetica", "B", 9)
-        self.cell(20, 6, "FECHA:", border=0)
-        self.set_font("Helvetica", "", 9)
-        self.cell(45, 6, str(data["fecha"]), border="B", ln=1)
-
-        # Fila 2: Nota de Venta y Nombre Logo
-        self.ln(2)
-        self.set_font("Helvetica", "B", 9)
-        self.cell(32, 6, "NOTA DE VENTA:", border=0)
-        self.set_font("Helvetica", "B", 10)
-        self.set_text_color(15, 23, 42)
-        self.cell(75, 6, str(data["nota_venta"]), border="B")
-
-        self.cell(8, 6, "")
-        self.set_font("Helvetica", "B", 9)
-        self.set_text_color(50, 50, 50)
-        self.cell(28, 6, "VARIANTE LOGO:", border=0)
-        self.set_font("Helvetica", "", 9)
-        self.cell(37, 6, str(data["nombre_logo"]), border="B", ln=1)
-
-        self.ln(6)
-
-        # 3. SECCIÓN: TÉCNICA Y POSICIONES
-        self.set_fill_color(241, 245, 249)
-        self.set_font("Helvetica", "B", 10)
-        self.set_text_color(15, 23, 42)
-        self.cell(180, 7, f" ESPECIFICACIÓN TÉCNICA: {data['tipo_trabajo'].upper()}", border=1, fill=True, ln=1)
-
-        # Tabla de casillas de ubicación
-        posiciones = ["PECHO DERECHO", "PECHO IZQUIERDO", "ESPALDA", "BOLSILLO TAPETA", "OTRO"]
-        ancho_col = 180 / len(posiciones)
-
+        # Caja derecha: NV y Fecha
+        self.set_fill_color(22, 42, 66)
+        self.rect(146, 12, 50, 18, style="F")
+        self.set_xy(148, 14)
         self.set_font("Helvetica", "B", 8)
-        self.set_text_color(70, 70, 70)
-        for pos in posiciones:
-            self.cell(ancho_col, 6, pos, border=1, align="C")
-        self.ln()
+        self.set_text_color(248, 250, 252)
+        self.cell(46, 4, f"N° NV: {data['nota_venta']}", ln=1, align="C")
+        self.set_xy(148, 21)
+        self.set_font("Helvetica", "", 7.5)
+        self.set_text_color(203, 213, 225)
+        self.cell(46, 4, f"Fecha: {data['fecha']}", ln=0, align="C")
 
-        self.set_font("Helvetica", "B", 11)
-        self.set_text_color(220, 38, 38) # Marca en rojo visual nítido
-        for pos in posiciones:
-            marca = "X" if pos == data["posicion_seleccionada"] else ""
-            self.cell(ancho_col, 7, marca, border=1, align="C")
-        self.ln(8)
-
-        # 4. TABLA DE DETALLES TÉCNICOS
-        self.set_text_color(50, 50, 50)
-        
-        self.set_font("Helvetica", "B", 8)
-        self.cell(45, 6, "COLOR(ES) HILOS / TINTAS:", border=0)
-        self.set_font("Helvetica", "", 9)
-        self.cell(135, 6, str(data["colores"]), border="B", ln=1)
-        self.ln(2)
-
-        self.set_font("Helvetica", "B", 8)
-        self.cell(45, 6, "DIMENSIONES:", border=0)
-        self.set_font("Helvetica", "", 9)
-        self.cell(135, 6, str(data["tamano"]), border="B", ln=1)
-        self.ln(2)
-
-        self.set_font("Helvetica", "B", 8)
-        self.cell(45, 6, "OBSERVACIONES / PRENDA:", border=0)
-        self.set_font("Helvetica", "", 9)
-        self.cell(135, 6, str(data["observaciones"]), border="B", ln=1)
-
-        # 5. RECUADRO INFERIOR DE DETALLE TALLER
-        self.ln(8)
-        y_visual = self.get_y()
-        self.set_draw_color(200, 200, 200)
-        self.set_fill_color(250, 250, 250)
-        self.rect(15, y_visual, 180, 115, style="DF")
-
-        self.set_xy(18, y_visual + 3)
-        self.set_font("Helvetica", "B", 8)
+        # ----------------------------------------------------
+        # 2. FILA 1: DATOS CLIENTE & FICHA TÉCNICA
+        # ----------------------------------------------------
+        y_fila1 = 35
+        # Tarjeta 1: Datos Cliente
+        self.dibujar_tarjeta(10, y_fila1, 92, 28, "1. DATOS DE CLIENTE")
+        self.set_xy(14, y_fila1 + 9)
+        self.set_font("Helvetica", "", 7)
         self.set_text_color(100, 116, 139)
-        self.cell(174, 5, f"VISTA PREVIA DEL TRABAJO A REALIZAR EN TALLER ({data['posicion_seleccionada']})", align="C", ln=1)
+        self.cell(30, 4, "Empresa / Razón Social:", ln=1)
+        self.set_x(14)
+        self.set_font("Helvetica", "B", 8.5)
+        self.set_text_color(15, 23, 42)
+        self.cell(80, 5, str(data["cliente"]), ln=1)
+        
+        self.set_x(14)
+        self.set_font("Helvetica", "", 7)
+        self.set_text_color(100, 116, 139)
+        self.cell(30, 4, "Variante Logo:", ln=1)
+        self.set_x(14)
+        self.set_font("Helvetica", "B", 8)
+        self.set_text_color(15, 23, 42)
+        self.cell(80, 4, str(data["nombre_logo"]), ln=0)
 
-        # Montaje central del logo grande para guía visual del operador
+        # Tarjeta 2: Ficha Técnica
+        self.dibujar_tarjeta(106, y_fila1, 94, 28, "2. FICHA TÉCNICA")
+        params = [
+            ("Técnica:", str(data["tipo_trabajo"])),
+            ("Colores Hilo:", str(data["colores"])),
+            ("Dimensiones:", str(data["tamano"])),
+            ("Tolerancia:", "± 2 mm")
+        ]
+        yp = y_fila1 + 8
+        for label, val in params:
+            self.set_xy(110, yp)
+            self.set_font("Helvetica", "", 7.5)
+            self.set_text_color(100, 116, 139)
+            self.cell(24, 4, label)
+            self.set_font("Helvetica", "B", 7.5)
+            self.set_text_color(15, 23, 42)
+            self.cell(64, 4, val)
+            yp += 4.5
+
+        # ----------------------------------------------------
+        # 3. FILA 2: UBICACIÓN EN PRENDA
+        # ----------------------------------------------------
+        y_fila2 = 66
+        self.dibujar_tarjeta(10, y_fila2, 190, 16, "3. UBICACIÓN EN PRENDA")
+        
+        posiciones = ["PECHO IZQUIERDO", "PECHO DERECHO", "ESPALDA", "BOLSILLO", "TAPETA", "OTRO"]
+        x_pos = 14
+        for pos in posiciones:
+            # Cuadro checkbox
+            marcado = (pos == data["posicion_seleccionada"])
+            self.set_draw_color(100, 116, 139)
+            self.rect(x_pos, y_fila2 + 9, 3.5, 3.5)
+            if marcado:
+                self.set_font("Helvetica", "B", 8)
+                self.set_text_color(225, 29, 72)
+                self.set_xy(x_pos, y_fila2 + 8.7)
+                self.cell(3.5, 3.5, "X", align="C")
+            
+            self.set_xy(x_pos + 4.5, y_fila2 + 8.7)
+            self.set_font("Helvetica", "B" if marcado else "", 7)
+            self.set_text_color(15, 23, 42)
+            self.cell(24, 4, pos.title())
+            x_pos += 30
+
+        # ----------------------------------------------------
+        # 4. FILA 3: MONTAJE VISUAL Y MUESTRA LOGO
+        # ----------------------------------------------------
+        y_fila3 = 85
+        # Bloque Prenda
+        self.dibujar_tarjeta(10, y_fila3, 118, 90, "4. VISTA TÉCNICA PRENDA Y MONTAJE")
+        self.set_xy(14, y_fila3 + 8)
+        self.set_font("Helvetica", "", 7)
+        self.set_text_color(100, 116, 139)
+        self.cell(50, 4, "VISTA FRONTAL", align="C")
+        self.set_xy(70, y_fila3 + 8)
+        self.cell(50, 4, "VISTA ESPALDA", align="C")
+
+        # Texto pie de prenda
+        self.set_xy(14, y_fila3 + 82)
+        self.set_font("Helvetica", "I", 7)
+        self.set_text_color(140, 140, 140)
+        self.cell(110, 4, "Montaje referencial para taller según posición marcada", align="C")
+
+        # Bloque Muestra Logo
+        self.dibujar_tarjeta(132, y_fila3, 68, 90, "5. MUESTRA LOGO")
         if data.get("logo_path") and os.path.exists(data["logo_path"]):
             try:
-                self.image(data["logo_path"], x=65, y=y_visual + 25, w=80)
+                self.image(data["logo_path"], x=138, y=y_fila3 + 28, w=56)
             except Exception:
                 pass
+
+        # ----------------------------------------------------
+        # 5. FILA 4: HILOS, TÉCNICA Y MEDIDAS (3 Cajas)
+        # ----------------------------------------------------
+        y_fila4 = 178
+        # Caja 6: Colores Hilo
+        self.dibujar_tarjeta(10, y_fila4, 58, 22, "6. COLORES HILO")
+        self.set_xy(14, y_fila4 + 10)
+        self.set_font("Helvetica", "B", 8)
+        self.set_text_color(15, 23, 42)
+        self.cell(50, 6, str(data["colores"]))
+
+        # Caja 7: Técnica
+        self.dibujar_tarjeta(72, y_fila4, 60, 22, "7. TÉCNICA / SERVICIO")
+        self.set_xy(76, y_fila4 + 9)
+        self.set_font("Helvetica", "B", 7.5)
+        self.set_text_color(15, 23, 42)
+        self.cell(50, 4, f"[X] {data['tipo_trabajo']}")
+
+        # Caja 8: Medidas
+        self.dibujar_tarjeta(136, y_fila4, 64, 22, "8. MEDIDAS")
+        self.set_xy(140, y_fila4 + 9)
+        self.set_font("Helvetica", "B", 8)
+        self.set_text_color(15, 23, 42)
+        self.cell(55, 4, str(data["tamano"]))
+        self.set_xy(140, y_fila4 + 14)
+        self.set_font("Helvetica", "", 6.5)
+        self.set_text_color(100, 116, 139)
+        self.cell(55, 4, "Tolerancia técnica: ± 2 mm")
+
+        # ----------------------------------------------------
+        # 6. FILA 5: OBSERVACIONES
+        # ----------------------------------------------------
+        y_fila5 = 203
+        self.dibujar_tarjeta(10, y_fila5, 190, 20, "9. OBSERVACIONES DE TALLER")
+        self.set_xy(14, y_fila5 + 8)
+        self.set_font("Helvetica", "", 7.5)
+        self.set_text_color(30, 41, 59)
+        self.multi_cell(182, 4, str(data["observaciones"]))
+
+        # ----------------------------------------------------
+        # 7. FILA 6: CONTROL Y FIRMAS
+        # ----------------------------------------------------
+        y_fila6 = 226
+        self.dibujar_tarjeta(10, y_fila6, 60, 16, "Operador Taller")
+        self.dibujar_tarjeta(74, y_fila6, 60, 16, "Control Calidad")
+        self.set_xy(78, y_fila6 + 8)
+        self.set_font("Helvetica", "", 7)
+        self.cell(50, 4, "[ ] Aprobado    [ ] Rechazado")
+        
+        self.dibujar_tarjeta(138, y_fila6, 62, 16, "Fecha y Recepción")
+
+        # ----------------------------------------------------
+        # 8. PIE INFERIOR (Barra oscura y naranja)
+        # ----------------------------------------------------
+        self.set_fill_color(11, 27, 44)
+        self.rect(10, 252, 190, 10, style="F")
+        self.set_fill_color(249, 115, 22)  # Acento naranja
+        self.rect(10, 250.5, 190, 1.5, style="F")
+
+        self.set_xy(14, 254)
+        self.set_font("Helvetica", "B", 7.5)
+        self.set_text_color(255, 255, 255)
+        self.cell(100, 5, "NOVA SEGURIDAD  |  Departamento de Producción y Taller")
+        self.set_xy(120, 254)
+        self.set_font("Helvetica", "I", 7.5)
+        self.set_text_color(203, 213, 225)
+        self.cell(76, 5, "Seguridad que nos mueve", align="R")
 
 
 # INTERFAZ STREAMLIT
 st.set_page_config(page_title="Nova Seguridad - Órdenes", layout="wide", page_icon="🦺")
-st.title("🦺 Generador de Órdenes de Producción")
+st.title("🦺 Ficha Técnica de Producción Nova Seguridad")
 
 db = cargar_datos()
 
@@ -199,22 +282,25 @@ with pestana1:
 
                 posicion = st.selectbox(
                     "Ubicación en la prenda",
-                    ["PECHO IZQUIERDO", "PECHO DERECHO", "ESPALDA", "BOLSILLO TAPETA", "OTRO"]
+                    ["PECHO IZQUIERDO", "PECHO DERECHO", "ESPALDA", "BOLSILLO", "TAPETA", "OTRO"]
                 )
 
                 colores = st.text_input("Colores sugeridos", value=datos_logo.get("colores_defecto", ""))
                 tamano = st.text_input("Dimensiones", value=datos_logo.get("tamano_defecto", ""))
-                observaciones = st.text_input("Detalle de la prenda", value="Chalecos geólogos naranjos con reflectante")
+                observaciones = st.text_area(
+                    "Observaciones de Taller", 
+                    value="Prenda: Geólogos naranjos con cinta reflectante de 2\". Hilos resistentes al lavado industrial. Revisar centrado respecto al cierre frontal."
+                )
 
         with col_preview:
             if logos_cliente and nombre_logo_sel:
-                st.subheader("Vista Previa")
+                st.subheader("Vista Previa del Logo")
                 ruta_logo = datos_logo.get("ruta_archivo", "")
                 if os.path.exists(ruta_logo):
                     st.image(ruta_logo, caption=f"Logo activo: {nombre_logo_sel}", width=220)
 
                 st.markdown("---")
-                if st.button("📄 Generar y Descargar Orden PDF", type="primary", use_container_width=True):
+                if st.button("📄 Generar Ficha Técnica PDF", type="primary", use_container_width=True):
                     if not nota_venta:
                         st.error("Debes ingresar la Nota de Venta antes de generar la orden.")
                     else:
@@ -231,8 +317,8 @@ with pestana1:
                             "logo_path": ruta_logo
                         }
 
-                        pdf = FichaProduccionPDF()
-                        pdf.dibujar_ficha(datos_orden)
+                        pdf = FichaSegundaOpcionPDF()
+                        pdf.generar(datos_orden)
                         nombre_pdf = f"Orden_{nota_venta}_{cliente_sel}.pdf"
                         pdf.output(nombre_pdf)
 
@@ -262,7 +348,7 @@ with pestana2:
         variante = st.text_input("Nombre de esta variante (ej: Pecho Principal, Espalda Grande, Monocromo)")
         colores_def = st.text_input("Colores habituales (ej: AZUL - NARANJO)")
     with col_2:
-        medida_def = st.text_input("Medidas habituales (ej: 10,5 cm x 6 cm)")
+        medida_def = st.text_input("Medidas habituales (ej: 10,5 cm x 6,0 cm)")
         archivo_logo = st.file_uploader("Subir imagen del logo (PNG o JPG)", type=["png", "jpg", "jpeg"])
 
     if st.button("💾 Guardar en el Catálogo", use_container_width=True):
